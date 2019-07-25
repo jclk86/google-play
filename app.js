@@ -5,45 +5,41 @@ const app = express();
 app.use(morgan("common"));
 const games = require("./games.js");
 
-app.get("/apps", (req, res) => {
-  let { sort, genres } = req.query;
+function changeCase(word) {
+  let querySort= word.toLowerCase().replace(/^.{1}/g, word[0].toUpperCase())
+  return querySort;
+}
 
-  if (sort) {
-    sort.toLowerCase().replace(/^.{1}/g, sort[0].toUpperCase());
-    if (!["Rating", "App"].includes(sort)) {
-      return res.status(400).send("Must be one of rating or app");
+app.get("/apps", (req, res) => {
+  const { sort, genres } = req.query;
+
+  if(genres) {
+    let genresCase = changeCase(genres)
+    if(!["Action", "Puzzle", "Strategy", "Casual", "Arcade", "Card"].includes(genresCase)) {
+      return res.status(400).send("Must be one of action, puzzle, strategy, casual, arcade, card")
+    } else if (["Action", "Puzzle", "Strategy", "Casual", "Arcade", "Card"].includes(genresCase)) {
+      let results = games.filter(game => {
+        return game.Genres.includes(genresCase)
+      })
+      res.json(results)
     }
   }
-
-  if (!sort) {
-    return res.json(games); // change for genres .filter it
+ 
+  if(sort) {
+    let sortCase = changeCase(sort);
+    if (!["Rating", "App"].includes(sortCase)) {
+    return res.status(400).send("Must be one of rating or app");
+    } else if (sortCase === "Rating") {
+      games.sort((a,b) => {
+        return a[sortCase] > b[sortCase] ? -1 : a[sortCase] < b[sortCase] ? 1 : 0;
+      })
+    } else if(sortCase === "App") {
+      games.sort((a,b) => {
+        return a[sortCase] > b[sortCase] ? 1 : a[sortCase] < b[sortCase] ? -1 : 0;
+      })
+    }
   }
-
-  if (sort === "Rating") {
-    games.sort((a, b) => {
-      return a[sort] > b[sort] ? -1 : a[sort] < b[sort] ? 1 : 0;
-    });
-  }
-
-  if (sort === "App") {
-    games.sort((a, b) => {
-      return a[sort] > b[sort] ? 1 : a[sort] < b[sort] ? -1 : 0;
-    });
-  }
-  // if (!genres) {
-  //   res.json(games);
-  // }
-  // if (genres) {
-  //   if (!["Action", "Puzzle", "Strategy", "Casual", "Arcade", "Card"].includes(genres)) {
-  //     return res
-  //       .status(400)
-  //       .send(
-  //         "Must choose one of action, puzzle, strategy, casual, arcade, or card"
-  //       );
-  //   }
-  // }
-
-  res.json(games);
+  res.json(games); 
 });
 
 app.listen(8000, () => {
